@@ -1,7 +1,7 @@
-FROM ubuntu:22.04 AS base_env
+FROM ubuntu:20.04 AS base_env
 
 ENV DEBIAN_FRONTEND=noninteractive
-ARG PTLNX_INSTALLER=petalinux-v2023.2-10121855-installer.run
+ARG PTLNX_INSTALLER=petalinux-v2021.2-final-installer.run
 
 # Environment
 # Disable user interaction with debian commands.
@@ -15,7 +15,7 @@ RUN dpkg-reconfigure dash
 
 # Install dependencies
 # → Architecture i386 for zlib1g:i386 package
-#RUN dpkg --add-architecture i386 && apt-get update -y
+RUN dpkg --add-architecture i386 && apt-get update -y
 RUN apt-get update -y
 
 # → Install apt-utils needed to configure the libc6:i386 package
@@ -23,7 +23,7 @@ RUN apt-get install -y apt-utils
 
 # → Install tzdata
 # ⚠ Remove to use UTC by default
-RUN ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
+RUN ln -fs /usr/share/zoneinfo/Europe/Andorra /etc/localtime
 RUN apt-get install -y tzdata
 RUN dpkg-reconfigure tzdata
 
@@ -42,7 +42,7 @@ RUN apt-get install -y \
    autoconf \
    libtool\
    texinfo\
-   zlib1g\
+   zlib1g:i386\
    zlib1g-dev\
    gcc-multilib\
    build-essential\
@@ -50,7 +50,6 @@ RUN apt-get install -y \
    screen\
    g++\
    xz-utils\
-   gcc-11\
    patch\
    python3-jinja2\
    diffutils\
@@ -68,7 +67,7 @@ RUN apt-get install -y \
 FROM base_env AS install_stage
 
 # Add installation user as installer refuse to install as root...
-RUN useradd -s /bin/bash -g users installer
+RUN useradd -m -s /bin/bash installer
 
 # Prepare installation directory
 RUN mkdir -p /opt/petalinux
@@ -94,7 +93,7 @@ WORKDIR /workspace
 
 # Patch and run installer
 RUN ./patch_petalinux.sh ./$PTLNX_INSTALLER
-RUN ./$PTLNX_INSTALLER -p aarch64 -d /opt/petalinux
+RUN ./$PTLNX_INSTALLER --platform "aarch64 arm" -d /opt/petalinux
 
 USER root
 
@@ -105,7 +104,8 @@ RUN chown -R root:root /opt/petalinux
 
 FROM base_env AS final
 
-RUN apt install -y vim
+RUN apt-get install -y vim gosu
+RUN rm -rf /var/lib/apt/lists/*
 COPY --from=install_stage /opt/petalinux /opt/petalinux
 
 COPY ./entrypoint.sh /opt/entrypoint.sh
