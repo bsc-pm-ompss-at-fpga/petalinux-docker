@@ -69,7 +69,7 @@ RUN apt-get install -y \
 FROM base_env AS install_stage
 
 # Add installation user as installer refuse to install as root...
-RUN useradd -s /bin/bash -g users installer
+RUN useradd -m -s /bin/bash installer
 
 # Prepare installation directory
 RUN mkdir -p /opt/petalinux
@@ -92,7 +92,7 @@ WORKDIR /workspace
 
 # Run installer
 # -> Starting from 2024.1, added the -y argument that allow to accept license automatically
-RUN ./$PTLNX_INSTALLER -y -p aarch64 -d /opt/petalinux
+RUN ./$PTLNX_INSTALLER -y -p "arm aarch64" -d /opt/petalinux
 
 USER root
 
@@ -103,7 +103,8 @@ RUN chown -R root:root /opt/petalinux
 
 FROM base_env AS final
 
-RUN apt install -y vim
+RUN apt install -y vim gosu
+RUN rm -rf /var/lib/apt/lists/*
 COPY --from=install_stage /opt/petalinux /opt/petalinux
 
 COPY ./entrypoint.sh /opt/entrypoint.sh
