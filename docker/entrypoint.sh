@@ -1,6 +1,9 @@
 #!/bin/bash
 
-groupadd --gid $HOST_GID builder
-useradd --shell /bin/bash --gid $HOST_GID --uid $HOST_UID builder
+groupadd --gid "${HOST_GID:-1000}" builder
+useradd --shell /bin/bash --gid "${HOST_GID:-1000}" --uid "${HOST_UID:-1000}" builder
 
-su -c "source /opt/user_entrypoint.sh $@" builder
+mkdir -p /yocto/dl /yocto/ss
+chown -R builder:builder /yocto/dl /yocto/ss
+
+exec gosu builder /opt/user_entrypoint.sh "$@"

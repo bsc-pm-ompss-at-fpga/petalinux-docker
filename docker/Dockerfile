@@ -23,7 +23,7 @@ RUN apt-get install -y apt-utils
 
 # → Install tzdata
 # ⚠ Remove to use UTC by default
-RUN ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
+RUN ln -fs /usr/share/zoneinfo/Europe/Andorra /etc/localtime
 RUN apt-get install -y tzdata
 RUN dpkg-reconfigure tzdata
 
@@ -68,7 +68,7 @@ RUN apt-get install -y \
 FROM base_env AS install_stage
 
 # Add installation user as installer refuse to install as root...
-RUN useradd -s /bin/bash -g users installer
+RUN useradd -m -s /bin/bash installer
 
 # Prepare installation directory
 RUN mkdir -p /opt/petalinux
@@ -94,7 +94,7 @@ WORKDIR /workspace
 
 # Patch and run installer
 RUN ./patch_petalinux.sh ./$PTLNX_INSTALLER
-RUN ./$PTLNX_INSTALLER -p aarch64 -d /opt/petalinux
+RUN ./$PTLNX_INSTALLER --platform "arm aarch64" -d /opt/petalinux
 
 USER root
 
@@ -105,7 +105,8 @@ RUN chown -R root:root /opt/petalinux
 
 FROM base_env AS final
 
-RUN apt install -y vim
+RUN apt-get install -y gosu kmod
+RUN apt-get clean
 COPY --from=install_stage /opt/petalinux /opt/petalinux
 
 COPY ./entrypoint.sh /opt/entrypoint.sh
